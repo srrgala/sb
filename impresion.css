@@ -2,7 +2,7 @@
 @page { size: A4; margin: 0; }
 html, body { background: #fff !important; padding: 0 !important; margin: 0 !important; }
 body * { visibility: hidden; }
-.pie, .aviso-guardado { display: none !important; }
+.pie, .aviso-guardado, .velo, body::before, body::after { display: none !important; }
 #p-cerrar, #p-cerrar * { visibility: visible; }
 #p-cerrar { display: block !important; padding: 0; margin: 0; max-width: none; }
 #p-cerrar > :not(.carta-final) { display: none !important; }
@@ -15,7 +15,7 @@ body * { visibility: hidden; }
   font-size: 13pt; line-height: 20pt;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
-.papel-rayado { background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 19pt, rgba(11,11,11,0.22) 19pt, rgba(11,11,11,0.22) 20pt) !important; }
+.papel-rayado { background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 19pt, rgba(34,50,74,0.22) 19pt, rgba(34,50,74,0.22) 20pt) !important; }
 .carta-cuerpo { flex: 1; }
 .carta-pie { margin-top: 18mm; break-inside: avoid; }
 .carta-sello { width: 26mm; }

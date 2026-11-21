@@ -53,6 +53,7 @@ export const T = {
     ],
     "ayuda_papel": "Empieza por su nombre.",
     "al_salir_sin_terminar": "Tu borrador se ha guardado en este móvil.",
+    "anterior": "Anterior",
     "caminos": {
       "utterson": {
         "ancla": "Si él es el señor Esconde, yo seré el señor Busca.",
@@ -79,7 +80,7 @@ export const T = {
         "linea_final": "Esta vez, no digas «estoy bien»."
       },
       "lanyon": {
-        "ancla": "La noche del funeral […] a la luz de una melancólica vela sacó y puso delante de sí un sobre lacrado.",
+        "ancla": "La noche del funeral […] a la luz de una melancólica vela sacó y puso delante de sí un sobre.",
         "ancla_fuente": "cap. 6",
         "eco": "¿A quién le debes una carta, o quién te la debe a ti?",
         "preguntas": [

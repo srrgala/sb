@@ -1,4 +1,5 @@
 // Señor Busca — PWA solo cliente. Sin backend, sin analítica, sin peticiones a otros dominios.
+// v2 (21 nov 2026): identidad del vídeo v7, una pregunta cada vez, papel aparte, gesto final. La privacidad no cambia.
 // Todos los textos visibles salen de textos.js (generado literal desde textos_pwa.json).
 import { T } from './textos.js';
 
@@ -59,18 +60,27 @@ function pintarTextosFijos() {
     const li = document.createElement('li');
     const a = document.createElement('a');
     a.className = 'tarjeta';
-    a.href = t.id === 'lanyon' ? '#aviso' : '#carta-' + t.id;
+    a.href = t.id === 'lanyon' ? '#aviso' : '#pregunta-' + t.id + '-1';
     a.dataset.camino = t.id;
+    const img = document.createElement('img');
+    img.className = 'tarjeta-retrato';
+    img.src = 'img/' + t.id + '.jpg';
+    img.alt = '';
+    img.width = 600; img.height = 796;
+    const txt = document.createElement('span');
+    txt.className = 'tarjeta-texto';
     const h = document.createElement('span');
     h.className = 'tarjeta-titulo';
     h.textContent = t.titulo;
     const p = document.createElement('span');
     p.className = 'tarjeta-linea';
     p.textContent = t.linea;
-    a.append(h, p);
+    txt.append(h, p);
+    a.append(img, txt);
     li.append(a);
     ul.append(li);
   });
+  $('#fecha').textContent = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
   const op = $('#opciones-papel');
   PAPELES.forEach((p, i) => op.append(opcion('papel', p, i, (caja) => caja.classList.add('muestra-papel', 'papel-' + p))));
@@ -102,14 +112,14 @@ function el(tag, attrs) {
 }
 function dibujarSello(tipo) {
   const svg = el('svg', { viewBox: '0 0 100 100', class: 'sello', focusable: 'false' });
-  // Lacre: borde irregular
+  // Fondo del sello: borde irregular
   const puntos = [];
   for (let k = 0; k < 24; k++) {
     const ang = (k / 24) * Math.PI * 2;
     const r = k % 2 ? 46 : 49;
     puntos.push((50 + r * Math.cos(ang)).toFixed(1) + ',' + (50 + r * Math.sin(ang)).toFixed(1));
   }
-  svg.append(el('polygon', { points: puntos.join(' '), class: 'lacre' }));
+  svg.append(el('polygon', { points: puntos.join(' '), class: 'sello-fondo' }));
   svg.append(el('circle', { cx: 50, cy: 50, r: 34, class: 'grabado' }));
   if (tipo === 'anillo') {
     svg.append(el('circle', { cx: 50, cy: 50, r: 22, class: 'grabado' }));
@@ -136,8 +146,7 @@ function dibujarSello(tipo) {
 /* ---------- Estado ---------- */
 let caminoActual = leer('camino', 'utterson');
 if (!CAMINOS.includes(caminoActual)) caminoActual = 'utterson';
-let indicePregunta = 0;
-let preguntasOcultas = false;
+let indicePregunta = 1;
 let rutaAnterior = null;
 
 function borrador(c = caminoActual) { return leer('borrador.' + c, ''); }
@@ -154,26 +163,45 @@ function avisarGuardado() {
 }
 
 /* ---------- Pantalla 3: la carta ---------- */
-function prepararCarta(c) {
+function avisoFijo(c) {
   const d = T.pantalla_3_carta.caminos[c];
+  document.querySelectorAll('[data-aviso-fijo]').forEach((aviso) => {
+    if (d.aviso_fijo) { textoConTelefonos(aviso, d.aviso_fijo); aviso.hidden = false; }
+    else { aviso.textContent = ''; aviso.hidden = true; }
+  });
+}
+// 3a · Una pregunta cada vez. n = 1..N. La primera lleva el ancla y el eco de la escena.
+function prepararPregunta(c, n) {
+  const d = T.pantalla_3_carta.caminos[c];
+  const N = d.preguntas.length;
+  n = Math.min(Math.max(1, n), N);
+  indicePregunta = n;
   document.body.dataset.camino = c;
+  avisoFijo(c);
+  $('#pregunta-intro').hidden = n !== 1;
   $('#ancla-texto').textContent = d.ancla;
   $('#ancla-fuente').textContent = d.ancla_fuente;
   $('#eco').textContent = d.eco;
-  const aviso = $('#aviso-fijo');
-  if (d.aviso_fijo) { textoConTelefonos(aviso, d.aviso_fijo); aviso.hidden = false; }
-  else { aviso.textContent = ''; aviso.hidden = true; }
-  indicePregunta = 0;
-  mostrarPregunta();
+  $('#pregunta').textContent = d.preguntas[n - 1];
+  const ol = $('#puntos');
+  ol.textContent = '';
+  for (let k = 1; k <= N; k++) { const li = document.createElement('li'); if (k === n) li.className = 'activo'; ol.append(li); }
+  const otra = $('#otra-pregunta');
+  otra.hidden = n === N;
+  otra.href = `#pregunta-${c}-${n + 1}`;
+  $('#ocultar-preguntas').href = '#carta-' + c;
+  $('#anterior-pregunta').href = n > 1 ? `#pregunta-${c}-${n - 1}` : (c === 'lanyon' ? '#aviso' : '#elegir');
+  escribir('pregunta.' + c, String(n));
+}
+// 3b · El papel
+function prepararCarta(c) {
+  document.body.dataset.camino = c;
+  avisoFijo(c);
   $('#papel').value = borrador(c);
   caminoDelPapel = c;
   $('#ir-cerrar').href = '#cerrar-' + c;
-}
-function mostrarPregunta() {
-  const d = T.pantalla_3_carta.caminos[caminoActual];
-  $('#pregunta').textContent = d.preguntas[indicePregunta % d.preguntas.length];
-  $('#guia').hidden = preguntasOcultas;
-  $('#ocultar-preguntas').hidden = preguntasOcultas;
+  const n = parseInt(leer('pregunta.' + c, '1'), 10) || 1;
+  $('#anterior-carta').href = `#pregunta-${c}-${n}`;
 }
 
 let temporizadorGuardado = null;
@@ -189,7 +217,9 @@ function prepararCierre(c) {
   const d = T.pantalla_3_carta.caminos[c];
   document.body.dataset.camino = c;
   $('#linea-final').textContent = d.linea_final;
-  $('#volver-carta').href = '#carta-' + c;
+  $('#ir-fin').href = '#fin-' + c;
+  $('#anterior-cerrar').href = '#carta-' + c;
+  $('#anterior-fin').href = '#cerrar-' + c;
   const papel = PAPELES.includes(leer('papel')) ? leer('papel') : PAPELES[0];
   const sello = SELLOS.includes(leer('sello')) ? leer('sello') : SELLOS[0];
   document.querySelector(`input[name="papel"][value="${papel}"]`).checked = true;
@@ -243,33 +273,81 @@ async function copiar(texto) {
   } catch (e) { return false; }
 }
 
+/* ---------- Gesto final ---------- */
+const sinMovimiento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function prepararGesto() {
+  const g = $('#gesto');
+  const pl = $('#pliegue');
+  pl.textContent = '';
+  const papel = PAPELES.includes(leer('papel')) ? leer('papel') : PAPELES[0];
+  for (let k = 1; k <= 3; k++) {
+    const t = document.createElement('div');
+    t.className = 'tercio tercio-' + k;
+    const h = document.createElement('div');
+    h.className = 'hoja-mini papel-' + papel;
+    const r = document.createElement('div');
+    r.className = 'reverso';
+    t.append(h, r);
+    pl.append(t);
+  }
+  const textos = $('#fin-textos');
+  g.className = 'gesto';
+  textos.classList.add('oculto');
+  void g.offsetWidth; // reinicia la animación
+  if (sinMovimiento()) {
+    // Sin animación de pliegue: fundido simple al estado final.
+    g.classList.add('simple');
+    requestAnimationFrame(() => { g.classList.add('final'); textos.classList.remove('oculto'); });
+    return;
+  }
+  g.classList.add('animar');
+  clearTimeout(prepararGesto.t);
+  prepararGesto.t = setTimeout(() => { g.classList.remove('animar'); g.classList.add('final'); textos.classList.remove('oculto'); }, 2300);
+}
+
 /* ---------- Navegación por hash ---------- */
 function rutaDesdeHash() {
   const h = (location.hash || '#portada').slice(1);
-  const [nombre, c] = h.split('-');
-  if (nombre === 'carta' || nombre === 'cerrar') {
+  const [nombre, c, n] = h.split('-');
+  if (['pregunta', 'carta', 'cerrar', 'fin'].includes(nombre)) {
     const camino = CAMINOS.includes(c) ? c : caminoActual;
-    return { nombre, camino };
+    return { nombre, camino, n: parseInt(n, 10) || 1 };
   }
   if (['portada', 'elegir', 'aviso'].includes(nombre)) return { nombre };
   return { nombre: 'portada' };
 }
-function mostrar() {
-  const r = rutaDesdeHash();
+function aplicar(r) {
   if (rutaAnterior && rutaAnterior.nombre === 'carta') {
     guardarBorrador();
-    // Al salir de la carta sin pasar a cerrarla: se avisa de que el borrador queda en el móvil.
-    if (r.nombre !== 'cerrar' && r.nombre !== 'carta' && borrador(rutaAnterior.camino).trim()) avisarGuardado();
+    // Al salir del papel sin pasar a cerrarla: se avisa de que el borrador queda en el móvil.
+    if (!['cerrar', 'carta', 'fin', 'pregunta'].includes(r.nombre) && borrador(rutaAnterior.camino).trim()) avisarGuardado();
   }
   if (r.camino) { caminoActual = r.camino; escribir('camino', r.camino); }
-  if (r.nombre === 'carta') { preguntasOcultas = false; prepararCarta(r.camino); }
-  if (r.nombre === 'cerrar') prepararCierre(r.camino);
-  if (r.nombre !== 'carta' && r.nombre !== 'cerrar') delete document.body.dataset.camino;
+  if (r.nombre === 'pregunta') prepararPregunta(r.camino, r.n);
+  if (r.nombre === 'carta') prepararCarta(r.camino);
+  if (r.nombre === 'cerrar' || r.nombre === 'fin') prepararCierre(r.camino);
+  if (!r.camino) delete document.body.dataset.camino;
 
   document.querySelectorAll('.pantalla').forEach((s) => { s.hidden = s.dataset.pantalla !== r.nombre; });
   document.body.dataset.pantalla = r.nombre;
   window.scrollTo(0, 0);
   rutaAnterior = r;
+  if (r.nombre === 'fin') prepararGesto();
+}
+// Transición entre pantallas: fade-through-black de 0,4 s (0,2 s a negro + 0,2 s de vuelta). Sin ella si reduce el movimiento.
+const MEDIO = 200;
+let turno = 0;
+function mostrar() {
+  const r = rutaDesdeHash();
+  if (!rutaAnterior || sinMovimiento()) { aplicar(r); return; }
+  const mio = ++turno;
+  const velo = $('#velo');
+  velo.classList.add('activo');
+  setTimeout(() => {
+    if (mio !== turno) return;
+    aplicar(r);
+    requestAnimationFrame(() => velo.classList.remove('activo'));
+  }, MEDIO);
 }
 
 /* ---------- Eventos ---------- */
@@ -283,15 +361,6 @@ function conectar() {
   });
   papel.addEventListener('blur', guardarBorrador);
 
-  $('#otra-pregunta').addEventListener('click', () => {
-    if (preguntasOcultas) preguntasOcultas = false; else indicePregunta++;
-    mostrarPregunta();
-  });
-  $('#ocultar-preguntas').addEventListener('click', () => {
-    preguntasOcultas = true;
-    mostrarPregunta();
-    $('#otra-pregunta').focus();
-  });
 
   document.querySelectorAll('input[name="papel"], input[name="sello"]').forEach((i) =>
     i.addEventListener('change', () => { guardarCierre(); actualizarCartaFinal(); }));

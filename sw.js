@@ -1,5 +1,5 @@
 // Service worker: guarda toda la app en el móvil para que funcione sin conexión.
-const VERSION = 'senorbusca-v2';
+const VERSION = 'senorbusca-v3'; // v3 = rediseño v2 (21 nov 2026): retratos, Inter, nueva identidad
 const ARCHIVOS = [
   './',
   './index.html',
@@ -17,7 +17,12 @@ const ARCHIVOS = [
   './fonts/libre-caslon-text-latin-400-italic.woff2',
   './fonts/libre-caslon-text-latin-ext-400-italic.woff2',
   './fonts/libre-caslon-text-latin-700-normal.woff2',
-  './fonts/libre-caslon-text-latin-ext-700-normal.woff2'
+  './fonts/libre-caslon-text-latin-ext-700-normal.woff2',
+  './fonts/inter-latin-400-normal.woff2',
+  './fonts/inter-latin-600-normal.woff2',
+  './img/utterson.jpg',
+  './img/jekyll.jpg',
+  './img/lanyon.jpg'
 ];
 
 self.addEventListener('install', (e) => {
